@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import pandas as pd
 
-from classify_ticket import classify_ticket
+ROOT = Path(__file__).resolve().parents[1]
+DATA_PATH = ROOT / "data" / "synthetic_tickets.csv"
+OUTPUT_PATH = ROOT / "data" / "evaluation_results.csv"
 
+sys.path.append(str(ROOT / "src"))
 
-DATA_PATH = "data/synthetic_tickets.csv"
+from classify_ticket import classify_ticket  # noqa: E402
 
 
 def calculate_accuracy(df: pd.DataFrame, actual_col: str, predicted_col: str) -> float:
@@ -47,8 +53,24 @@ def evaluate() -> pd.DataFrame:
     print(f"Assignment group accuracy: {calculate_accuracy(results, 'suggested_group', 'predicted_group')}%")
     print(f"Security flag accuracy: {calculate_accuracy(results, 'security_flag', 'predicted_security_flag')}%")
 
-    results.to_csv("data/evaluation_results.csv", index=False)
-    print("\nSaved detailed results to data/evaluation_results.csv")
+    print("\nPredicted assignment groups")
+    print("===========================")
+    print(results["predicted_group"].value_counts())
+
+    print("\nPredicted priorities")
+    print("====================")
+    print(results["predicted_priority"].value_counts())
+
+    print("\nSecurity flagged tickets")
+    print("========================")
+    security_tickets = results[results["predicted_security_flag"] == True]
+    if security_tickets.empty:
+        print("No security tickets flagged.")
+    else:
+        print(security_tickets[["ticket_id", "title", "predicted_priority", "predicted_group"]])
+
+    results.to_csv(OUTPUT_PATH, index=False)
+    print(f"\nSaved detailed results to {OUTPUT_PATH}")
 
     return results
 

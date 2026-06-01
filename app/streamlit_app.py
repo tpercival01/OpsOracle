@@ -14,6 +14,8 @@ DATA_PATH = ROOT / "data" / "synthetic_tickets.csv"
 sys.path.append(str(SRC))
 
 from classify_ticket import classify_ticket  # noqa: E402
+from similarity import find_similar_tickets  # noqa: E402
+from analyst_notes import generate_analyst_note  # noqa: E402
 
 
 st.set_page_config(
@@ -28,8 +30,8 @@ st.subheader("AI-assisted incident triage and IT automation prototype")
 st.write(
     """
     OpsOracle classifies synthetic ServiceNow-style tickets, predicts priority,
-    identifies likely assignment groups, flags possible security risks, and explains
-    the triage decision.
+    identifies likely assignment groups, flags possible security risks, retrieves
+    similar incidents, and generates analyst-style triage notes.
     """
 )
 
@@ -57,18 +59,46 @@ results = tickets.merge(prediction_df, on="ticket_id")
 
 
 def accuracy(actual_col: str, predicted_col: str) -> float:
-    correct = (results[actual_col].astype(str) == results[predicted_col].astype(str)).sum()
+    correct = (
+        results[actual_col].astype(str)
+        == results[predicted_col].astype(str)
+    ).sum()
+
     return round((correct / len(results)) * 100, 2)
 
 
-metric_col_1, metric_col_2, metric_col_3, metric_col_4 = st.columns(4)
+st.markdown("## Evaluation summary")
+
+metric_col_1, metric_col_2, metric_col_3, metric_col_4, metric_col_5 = st.columns(5)
 
 metric_col_1.metric("Tickets", len(results))
 metric_col_2.metric("Type accuracy", f"{accuracy('true_type', 'predicted_type')}%")
 metric_col_3.metric("Priority accuracy", f"{accuracy('true_priority', 'predicted_priority')}%")
-metric_col_4.metric("Security accuracy", f"{accuracy('security_flag', 'predicted_security_flag')}%")
+metric_col_4.metric("Group accuracy", f"{accuracy('suggested_group', 'predicted_group')}%")
+metric_col_5.metric("Security accuracy", f"{accuracy('security_flag', 'predicted_security_flag')}%")
 
 st.divider()
+
+chart_col_1, chart_col_2, chart_col_3 = st.columns(3)
+
+with chart_col_1:
+    st.markdown("### Predicted groups")
+    group_counts = results["predicted_group"].value_counts()
+    st.bar_chart(group_counts)
+
+with chart_col_2:
+    st.markdown("### Predicted priority")
+    priority_counts = results["predicted_priority"].value_counts()
+    st.bar_chart(priority_counts)
+
+with chart_col_3:
+    st.markdown("### Security flags")
+    security_counts = results["predicted_security_flag"].astype(str).value_counts()
+    st.bar_chart(security_counts)
+
+st.divider()
+
+st.markdown("## Ticket filters")
 
 filter_col_1, filter_col_2, filter_col_3 = st.columns(3)
 
@@ -98,7 +128,7 @@ if priority_filter != "All":
 if security_only:
     filtered = filtered[filtered["predicted_security_flag"] == True]
 
-st.subheader("Triaged tickets")
+st.markdown("## Triaged tickets")
 
 display_columns = [
     "ticket_id",
@@ -117,9 +147,18 @@ display_columns = [
 
 st.dataframe(filtered[display_columns], use_container_width=True)
 
+csv_output = results.to_csv(index=False).encode("utf-8")
+
+st.download_button(
+    label="Download triage results as CSV",
+    data=csv_output,
+    file_name="opsoracle_triage_results.csv",
+    mime="text/csv",
+)
+
 st.divider()
 
-st.subheader("Single ticket triage")
+st.markdown("## Single ticket triage")
 
 selected_ticket_id = st.selectbox(
     "Select ticket",
@@ -127,6 +166,7 @@ selected_ticket_id = st.selectbox(
 )
 
 selected_ticket = results[results["ticket_id"] == selected_ticket_id].iloc[0]
+selected_ticket_dict = selected_ticket.to_dict()
 
 left, right = st.columns(2)
 
@@ -138,6 +178,7 @@ with left:
     st.write(f"**Department:** {selected_ticket['user_department']}")
     st.write(f"**Impact:** {selected_ticket['impact']}")
     st.write(f"**Urgency:** {selected_ticket['urgency']}")
+    st.write(f"**Original category:** {selected_ticket['category']}")
 
 with right:
     st.markdown("### OpsOracle prediction")
@@ -147,4 +188,20 @@ with right:
     st.write(f"**Security flag:** {selected_ticket['predicted_security_flag']}")
     st.write(f"**Confidence:** {selected_ticket['confidence']}")
     st.write(f"**Evidence:** {selected_ticket['evidence']}")
-    st.write(f"**Resolution hint:** {selected_ticket['resolution_hint']}")
+
+st.markdown("### Analyst note")
+
+analyst_note = generate_analyst_note(selected_ticket_dict)
+
+st.info(analyst_note)
+
+st.markdown("### Similar previous tickets")
+
+similar_tickets = find_similar_tickets(results, selected_ticket_id, top_n=3)
+
+if similar_tickets:
+    similar_df = pd.DataFrame(similar_tickets)
+    similar_df["similarity"] = similar_df["similarity"].round(2)
+    st.dataframe(similar_df, use_container_width=True)
+else:
+    st.write("No similar tickets found.")

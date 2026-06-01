@@ -1,1 +1,6 @@
-.venv
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+data/evaluation_results.csv
+.streamlit/
