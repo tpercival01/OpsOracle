@@ -35,27 +35,28 @@ st.write(
     """
 )
 
-tickets = pd.read_csv(DATA_PATH)
+@st.cache_data
+def load_results() -> pd.DataFrame:
+    tickets = pd.read_csv(DATA_PATH)
+    predictions = []
+    for _, row in tickets.iterrows():
+        prediction = classify_ticket(row.to_dict())
+        predictions.append(
+            {
+                "ticket_id": row["ticket_id"],
+                "predicted_type": prediction.predicted_type,
+                "predicted_priority": prediction.predicted_priority,
+                "predicted_group": prediction.predicted_group,
+                "predicted_security_flag": prediction.predicted_security_flag,
+                "confidence": prediction.confidence,
+                "evidence": prediction.evidence,
+            }
+        )
+    prediction_df = pd.DataFrame(predictions)
+    return tickets.merge(prediction_df, on="ticket_id")
 
-predictions = []
 
-for _, row in tickets.iterrows():
-    prediction = classify_ticket(row.to_dict())
-
-    predictions.append(
-        {
-            "ticket_id": row["ticket_id"],
-            "predicted_type": prediction.predicted_type,
-            "predicted_priority": prediction.predicted_priority,
-            "predicted_group": prediction.predicted_group,
-            "predicted_security_flag": prediction.predicted_security_flag,
-            "confidence": prediction.confidence,
-            "evidence": prediction.evidence,
-        }
-    )
-
-prediction_df = pd.DataFrame(predictions)
-results = tickets.merge(prediction_df, on="ticket_id")
+results = load_results()
 
 
 def accuracy(actual_col: str, predicted_col: str) -> float:

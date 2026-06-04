@@ -3,8 +3,14 @@ from __future__ import annotations
 from typing import Dict
 
 
+def parse_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() == "true"
+
+
 def generate_analyst_note(ticket: Dict[str, object]) -> str:
-    security_flag = bool(ticket.get("predicted_security_flag", False))
+    security_flag = parse_bool(ticket.get("predicted_security_flag", False))
 
     note_parts = [
         f"Ticket {ticket.get('ticket_id')} has been classified as {ticket.get('predicted_type')} with priority {ticket.get('predicted_priority')}.",

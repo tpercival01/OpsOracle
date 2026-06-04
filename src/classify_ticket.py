@@ -174,6 +174,17 @@ def classify_ticket(row: Dict[str, str]) -> Prediction:
         predicted_priority = "P2"
         confidence = min(confidence + 0.05, 0.95)
 
+    urgency = str(row.get("urgency", "")).strip().lower()
+    impact = str(row.get("impact", "")).strip().lower()
+
+    if predicted_type == "Incident":
+        if urgency == "high" and predicted_priority not in ("P1", "P2"):
+            predicted_priority = "P2"
+            confidence = min(confidence + 0.05, 0.95)
+        if impact == "multiple users" and predicted_priority not in ("P1", "P2"):
+            predicted_priority = "P2"
+            confidence = min(confidence + 0.05, 0.95)
+
     return Prediction(
         predicted_type=predicted_type,
         predicted_priority=predicted_priority,
