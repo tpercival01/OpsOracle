@@ -10,6 +10,14 @@ Support and application teams spend a lot of time triaging repetitive tickets, r
 
 OpsOracle demonstrates how Python automation and applied AI-style workflows can improve triage consistency, reduce repetitive support work, and support faster operational decision-making.
 
+## Screenshots
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+![Triage Table](docs/screenshots/triage_table.png)
+
+![AI Analyst Note](docs/screenshots/ai_note.png)
+
 ## Current MVP
 
 The current MVP includes:
