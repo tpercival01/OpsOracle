@@ -37,3 +37,12 @@ def generate_analyst_note(ticket: Dict[str, object]) -> str:
     )
 
     return " ".join(note_parts)
+
+def get_analyst_note(ticket: Dict[str, object]) -> tuple[str, bool]:
+    """Returns (note_text, is_ai_generated)."""
+    try:
+        from llm_notes import generate_llm_note
+        note = generate_llm_note(ticket)
+        return note, True
+    except Exception:
+        return generate_analyst_note(ticket), False

@@ -13,9 +13,9 @@ DATA_PATH = ROOT / "data" / "synthetic_tickets.csv"
 
 sys.path.append(str(SRC))
 
-from classify_ticket import classify_ticket  # noqa: E402
-from similarity import find_similar_tickets  # noqa: E402
-from analyst_notes import generate_analyst_note  # noqa: E402
+from classify_ticket import classify_ticket 
+from similarity import find_similar_tickets  
+from analyst_notes import get_analyst_note  
 
 
 st.set_page_config(
@@ -192,11 +192,14 @@ with right:
 
 st.markdown("### Analyst note")
 
-analyst_note = generate_analyst_note(selected_ticket_dict)
+analyst_note, is_ai = get_analyst_note(selected_ticket_dict)
+
+if is_ai:
+    st.markdown("** AI Analyst Note**")
+else:
+    st.markdown("**Rule-based Analyst Note**")
 
 st.info(analyst_note)
-
-st.markdown("### Similar previous tickets")
 
 similar_tickets = find_similar_tickets(results, selected_ticket_id, top_n=3)
 
